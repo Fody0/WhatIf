@@ -1,10 +1,10 @@
 package com.Fody.WhatIfApp.message;
 
+import com.Fody.WhatIfApp.chat.ChatEntity;
+import com.Fody.WhatIfApp.user.User;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Data
 @Builder
@@ -17,8 +17,12 @@ public class MessageEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(nullable = false)
-    private Integer chat_id;
+    @ManyToOne
+    @Setter
+    @JoinColumn(name = "chat_id")
+    @JsonBackReference
+    private ChatEntity chat;
+
     private String message_question;
     private String message_answer;
 }
