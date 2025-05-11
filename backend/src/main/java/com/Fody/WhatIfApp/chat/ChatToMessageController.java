@@ -5,7 +5,6 @@ import com.Fody.WhatIfApp.message.MessageRequest;
 import com.Fody.WhatIfApp.message.MessageService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +19,7 @@ public class ChatToMessageController {
     private final JwtService jwtService;
 
     @PostMapping("/new_chat")
-    public int addNewChat(HttpServletRequest httpRequest){
+    public NewChatResponse addNewChat(HttpServletRequest httpRequest){
         System.out.println("I am in newChat endpoint");
         final String authHeader = httpRequest.getHeader("Authorization");
         final String jwtToken;

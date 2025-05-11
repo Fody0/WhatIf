@@ -2,13 +2,11 @@ package com.Fody.WhatIfApp.chat;
 
 import com.Fody.WhatIfApp.message.MessageEntity;
 import com.Fody.WhatIfApp.message.MessageRepository;
-import com.Fody.WhatIfApp.user.User;
 import com.Fody.WhatIfApp.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -18,8 +16,11 @@ public class ChatService {
     private final UserRepository userRepository;
     private final MessageRepository messageRepository;
 
-    public int newChat(String userEmail) {
+    public NewChatResponse newChat(String userEmail) {
         ChatEntity chatEntity = new ChatEntity();
+        NewChatResponse newChatResponse = new NewChatResponse();
+
+
 
         var user = userRepository.findByEmail(userEmail).orElseThrow();
 
@@ -27,7 +28,9 @@ public class ChatService {
 
         chatRepository.save(chatEntity);
 
-        return chatEntity.getId();
+        newChatResponse.setChat_id(chatEntity.getId());
+
+        return newChatResponse;
     }
 
     public ChatsInfoResponse getAllChats(String userEmail) {
