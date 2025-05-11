@@ -3,6 +3,7 @@ package com.Fody.WhatIfApp.chat;
 import com.Fody.WhatIfApp.config.JwtService;
 import com.Fody.WhatIfApp.message.MessageRequest;
 import com.Fody.WhatIfApp.message.MessageService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,7 +31,8 @@ public class ChatToMessageController {
     }
 
     @PostMapping("/new_message")
-    public NewMessageResponse newMessage(@RequestBody MessageRequest messageRequest){
+    public NewMessageResponse newMessage(@RequestBody MessageRequest messageRequest) throws JsonProcessingException {
+        System.out.println("Message to respond: " + messageRequest.getMessage());
         return messageService.addMessage(messageRequest.getMessage(), messageRequest.getChat_id());
     }
 

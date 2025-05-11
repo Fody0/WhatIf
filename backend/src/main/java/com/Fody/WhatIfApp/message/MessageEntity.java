@@ -23,6 +23,9 @@ public class MessageEntity {
     @JsonBackReference
     private ChatEntity chat;
 
+    @Column(columnDefinition = "TEXT")
     private String message_question;
+
+    @Column(columnDefinition = "TEXT")
     private String message_answer;
 }

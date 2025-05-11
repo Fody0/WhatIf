@@ -161,13 +161,14 @@ const Main = () => {
         try {
             const response = await axios.post(`${main_part_link}api/v1/chats/new_message`, {
                 chat_id: activeChat.id,
-                content: message
+                message: message
             }, {
                 headers: {
                     'Authorization': 'Bearer ' + getAuthToken()
                 }
             });
 
+            console.log(response.data);
 
             const updatedChats = chats.map(chat => {
                 if (chat.id === activeChat.id) {
