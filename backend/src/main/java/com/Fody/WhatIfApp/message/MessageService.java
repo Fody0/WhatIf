@@ -2,6 +2,7 @@ package com.Fody.WhatIfApp.message;
 
 import com.Fody.WhatIfApp.chat.ApiService;
 import com.Fody.WhatIfApp.chat.ChatRepository;
+import com.Fody.WhatIfApp.chat.NewMessageResponse;
 import com.Fody.WhatIfApp.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -13,12 +14,16 @@ public class MessageService {
     private final ChatRepository chatRepository;
     private final ApiService apiService;
 
-    public String addMessage(String message, int chatId) {
+    public NewMessageResponse addMessage(String message, int chatId) {
         MessageEntity messageEntity = new MessageEntity();
 
         String message_answer = "Заглушка";
 
+        NewMessageResponse message_response = new NewMessageResponse();
+
         var chat = chatRepository.findById(chatId).orElseThrow();
+
+        message_response.setMessage_answer(message_answer);
 
         messageEntity.setMessage_question(message);
         messageEntity.setMessage_answer(message_answer);
@@ -34,6 +39,6 @@ public class MessageService {
 
         messageRepository.save(messageEntity);
 
-        return message_answer;
+        return message_response;
     }
 }

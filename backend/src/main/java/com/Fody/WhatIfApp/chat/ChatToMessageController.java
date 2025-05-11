@@ -30,7 +30,7 @@ public class ChatToMessageController {
     }
 
     @PostMapping("/new_message")
-    public String newMessage(@RequestBody MessageRequest messageRequest){
+    public NewMessageResponse newMessage(@RequestBody MessageRequest messageRequest){
         return messageService.addMessage(messageRequest.getMessage(), messageRequest.getChat_id());
     }
 
