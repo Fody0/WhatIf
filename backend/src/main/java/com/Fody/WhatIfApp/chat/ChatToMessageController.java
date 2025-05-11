@@ -30,8 +30,8 @@ public class ChatToMessageController {
     }
 
     @PostMapping("/new_message")
-    public void newMessage(@RequestBody MessageRequest messageRequest){
-        messageService.addMessage(messageRequest.getMessage(), messageRequest.getChat_id());
+    public String newMessage(@RequestBody MessageRequest messageRequest){
+        return messageService.addMessage(messageRequest.getMessage(), messageRequest.getChat_id());
     }
 
     @PostMapping("/all_chats")

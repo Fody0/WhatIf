@@ -13,21 +13,27 @@ public class MessageService {
     private final ChatRepository chatRepository;
     private final ApiService apiService;
 
-    public void addMessage(String message, int chatId) {
+    public String addMessage(String message, int chatId) {
         MessageEntity messageEntity = new MessageEntity();
+
+        String message_answer = "Заглушка";
 
         var chat = chatRepository.findById(chatId).orElseThrow();
 
         messageEntity.setMessage_question(message);
+        messageEntity.setMessage_answer(message_answer);
 
         messageEntity.setChat(chat);
 
-        var data = apiService.postData();
 
-        System.out.println(data);
+//        var data = apiService.postData();
+
+//        System.out.println(data);
         //Send a request to an LLM
         //messageEntity.setMessage_answer(answer);
 
         messageRepository.save(messageEntity);
+
+        return message_answer;
     }
 }
