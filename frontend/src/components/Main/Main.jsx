@@ -2,24 +2,55 @@ import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Main = () => {
     const [chats, setChats] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [message, setMessage] = useState('');
     const [showMenu, setShowMenu] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState(null);
     const userName = 'Гость';
     const menuRef = useRef(null);
     const navigate = useNavigate();
+    const main_part_link = 'http://localhost:8080/';
 
-    const handleNewChat = () => {
-        const newChat = {
-            id: Date.now(),
-            title: `Запрос #${chats.length + 1}`,
-            messages: []
-        };
-        setChats([newChat, ...chats]);
-        setActiveChat(newChat);
+    const getAuthToken = () => {
+        return window.localStorage.getItem('auth_token');
+    }
+
+    const handleNewChat = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const response = await axios.post(`${main_part_link}api/v1/chats/new_chat`,
+                {},
+                {
+                    headers: {
+                        'Authorization': 'Bearer ' + getAuthToken()
+                    }
+                });
+
+
+            const newChat = {
+                id: response.data.chat_id,
+                title: `Запрос #${chats.length + 1}`,
+                messages: []
+            };
+            console.log(newChat);
+
+            setChats([newChat, ...chats]);
+            setActiveChat(newChat);
+
+        } catch (err) {
+            setError('Не удалось создать новый чат');
+            console.error('Ошибка при создании чата:', err);
+
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const handleSendMessage = () => {
@@ -94,9 +125,26 @@ const Main = () => {
                     className="btn w-100 mb-3 d-flex align-items-center justify-content-center"
                     style={{ backgroundColor: '#6c8cff', color: 'white', border: 'none' }}
                     onClick={handleNewChat}
+                    disabled={isLoading}
                 >
-                    <i className="bi bi-plus-circle me-2"></i> Новый чат
+                    {isLoading ? (
+                        <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                            Создание...
+                        </>
+                    ) : (
+                        <>
+                            <i className="bi bi-plus-circle me-2"></i> Новый чат
+                        </>
+                    )}
                 </button>
+
+                {/* Сообщение об ошибке */}
+                {error && (
+                    <div className="alert alert-danger p-2 mb-3">
+                        {error}
+                    </div>
+                )}
 
                 {/* Список чатов */}
                 <div className="flex-grow-1 overflow-auto">
