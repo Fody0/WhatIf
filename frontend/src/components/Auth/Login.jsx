@@ -48,35 +48,34 @@ const LoginContent = () => {
     // Логин через Google
     const handleGoogleLogin = useGoogleLogin({
         onSuccess: async (tokenResponse) => {
-            console.log('Google token:', tokenResponse);
+            // console.log('Google token:', tokenResponse);
+            window.location.href = `${main_part_link}oauth2/authorization/google`;
 
             // Отправляем id_token на ваш backend
-            try {
-                const res = await axios.get (`${main_part_link}oauth2/code/authorization/google`, {
-
-                    headers: {
-                        'Content-Type': 'application/json',
-
-                    },
-
-                });
-
-                const data = res.data;
-
-                if (res.status >= 200 && res.status < 300) {
-                    localStorage.setItem('access_token', data.accessToken);
-                    navigate('/');
-                    console.log('success');
-                } else {
-                    console.error('Ошибка авторизации через Google');
-                }
-                console.log(res);
-            } catch (err) {
-                console.error('Ошибка запроса на сервер:', err);
-            }
-                    },
-        onError: (err) => {
-            console.error('Ошибка входа через Google:', err);
+        //     try {
+        //         // const res = "";
+        //         const res = await axios.get(`${main_part_link}oauth2/authorization/google`, {
+        //             headers: {
+        //                 'Content-Type': 'application/json',
+        //             },
+        //         });
+        //
+        //         const data = res.data;
+        //
+        //         if (res.status >= 200 && res.status < 300) {
+        //             localStorage.setItem('access_token', data.accessToken);
+        //             navigate('/');
+        //             console.log('success');
+        //         } else {
+        //             console.error('Ошибка авторизации через Google');
+        //         }
+        //         console.log(res);
+        //     } catch (err) {
+        //         console.error('Ошибка запроса на сервер:', err);
+        //     }
+        //             },
+        // onError: (err) => {
+        //     console.error('Ошибка входа через Google:', err);
         },
     });
 

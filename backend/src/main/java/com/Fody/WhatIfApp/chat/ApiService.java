@@ -2,6 +2,9 @@ package com.Fody.WhatIfApp.chat;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -12,17 +15,13 @@ public class ApiService {
 
     private final RestTemplate restTemplate;
 
-    public ResponseEntity<String> fetchData() {
-        String apiUrl = "https://api.example.com/data";
+    public ResponseEntity<String> postData() {
+        String apiUrl = "https://events-opportunity-puppy-maritime.trycloudflare.com";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String requestBody = "{\"prompt\": Почему СССР распался?}";
 
-        // Send GET request and await response
-        ResponseEntity<String> response = restTemplate.getForEntity(apiUrl, String.class);
-
-        // Process response
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return response;
-        } else {
-            throw new RuntimeException("API request failed");
-        }
+        HttpEntity<String> requestEntity = new HttpEntity<>(requestBody, headers);
+        return restTemplate.postForEntity(apiUrl, requestEntity, String.class);
     }
 }

@@ -22,9 +22,9 @@ public class MessageService {
 
         messageEntity.setChat(chat);
 
-//        var data = apiService.fetchData();
+        var data = apiService.postData();
 
-//        System.out.println(data);
+        System.out.println(data);
         //Send a request to an LLM
         //messageEntity.setMessage_answer(answer);
 

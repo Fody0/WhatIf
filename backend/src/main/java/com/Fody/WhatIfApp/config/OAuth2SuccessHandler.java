@@ -54,7 +54,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
             user = User.builder()
                     .email(email)
                     .name(name)
-                    .password(passwordEncoder.encode(UUID.randomUUID().toString())) // Placeholder password
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
                     .role(Role.User)
                     .provider(provider)
                     .providerId(providerId)
