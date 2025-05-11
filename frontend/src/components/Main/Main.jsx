@@ -10,6 +10,7 @@ const Main = () => {
     const [message, setMessage] = useState('');
     const [showMenu, setShowMenu] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingChats, setIsLoadingChats] = useState(true);
     const [error, setError] = useState(null);
     const userName = 'Гость';
     const menuRef = useRef(null);
@@ -18,52 +19,175 @@ const Main = () => {
 
     const getAuthToken = () => {
         return window.localStorage.getItem('auth_token');
-    }
+    };
+
+    const fetchAllChats = async () => {
+        setIsLoadingChats(true);
+        try {
+            const token = getAuthToken();
+            console.log('Токен:', token); // Логируем токен для отладки
+            if (!token) {
+                navigate('/login');
+                return;
+            }
+            const response = await axios.post(`${main_part_link}api/v1/chats/all_chats`, {}, {
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                }
+            });
+            console.log('Полный ответ сервера:', response); // Логируем весь ответ
+            // Проверяем наличие данных
+            if (!response.data || !response.data.chats_with_messages) {
+                throw new Error('Некорректный формат ответа от сервера');
+            }
+            // Преобразуем данные с сервера
+            const chatsMap = response.data.chats_with_messages;
+            const loadedChats = [];
+            // Перебираем записи в Map
+            for (const [chatEntity, messages] of Object.entries(chatsMap)) {
+                try {
+                    // Добавляем проверку на валидность JSON строки
+                    let chat;
+                    if (typeof chatEntity === 'string') {
+                        try {
+                            // Попытка парсинга JSON строки
+                            chat = JSON.parse(chatEntity);
+                        } catch (parseErr) {
+                            console.error('Ошибка парсинга JSON:', parseErr);
+                            // Преобразуем строковое представление в JSON объект
+                            chat = parseChatEntity(chatEntity);
+                        }
+                    } else {
+                        chat = chatEntity;
+                    }
+                    loadedChats.push({
+                        id: chat.id,
+                        title: chat.title || `Запрос #${chat.id}`,
+                        messages: Array.isArray(messages)
+                            ? messages.map(m => m.content || m.text || JSON.stringify(m))
+                            : []
+                    });
+                } catch (e) {
+                    console.error('Ошибка обработки чата:', e);
+                }
+            }
+            setChats(loadedChats);
+            if (loadedChats.length > 0) {
+                setActiveChat(loadedChats[0]);
+            }
+        } catch (err) {
+            console.error('Подробная ошибка:', {
+                message: err.message,
+                response: err.response?.data,
+                status: err.response?.status,
+                config: err.config
+            });
+            setError('Ошибка загрузки чатов. Проверьте консоль для деталей.');
+            if (err.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            }
+        } finally {
+            setIsLoadingChats(false);
+        }
+    };
+
+    // Функция для преобразования строкового представления в JSON объект
+    const parseChatEntity = (entity) => {
+        // Пример преобразования строки в JSON объект
+        // Предполагается, что строка имеет формат: ChatEntity(id=8, user=User(id=1, name=qwerty, ...)
+        const regex = /ChatEntity\((.*?)\)/;
+        const match = entity.match(regex);
+        if (match && match[1]) {
+            const properties = match[1].split(',').map(prop => prop.trim());
+            const chat = {};
+            properties.forEach(prop => {
+                const [key, value] = prop.split('=').map(part => part.trim());
+                if (key === 'user') {
+                    // Преобразуем строку пользователя в JSON объект
+                    const userRegex = /User\((.*?)\)/;
+                    const userMatch = value.match(userRegex);
+                    if (userMatch && userMatch[1]) {
+                        const userProperties = userMatch[1].split(',').map(userProp => userProp.trim());
+                        const user = {};
+                        userProperties.forEach(userProp => {
+                            const [userKey, userValue] = userProp.split('=').map(userPart => userPart.trim());
+                            user[userKey] = userValue.replace(/"/g, '');
+                        });
+                        chat[key] = user;
+                    }
+                } else {
+                    chat[key] = value.replace(/"/g, '');
+                }
+            });
+            return chat;
+        }
+        return null;
+    };
+
+    useEffect(() => {
+        fetchAllChats();
+    }, []);
 
     const handleNewChat = async () => {
         setIsLoading(true);
         setError(null);
-
         try {
-            const response = await axios.post(`${main_part_link}api/v1/chats/new_chat`,
-                {},
-                {
-                    headers: {
-                        'Authorization': 'Bearer ' + getAuthToken()
-                    }
-                });
-
-
+            const response = await axios.post(`${main_part_link}api/v1/chats/new_chat`, {}, {
+                headers: {
+                    'Authorization': 'Bearer ' + getAuthToken()
+                }
+            });
             const newChat = {
                 id: response.data.chat_id,
                 title: `Запрос #${chats.length + 1}`,
                 messages: []
             };
             console.log(newChat);
-
             setChats([newChat, ...chats]);
             setActiveChat(newChat);
-
         } catch (err) {
             setError('Не удалось создать новый чат');
             console.error('Ошибка при создании чата:', err);
-
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleSendMessage = () => {
+    const handleSendMessage = async () => {
         if (!message.trim()) return;
-        const updatedChats = chats.map(chat => {
-            if (chat.id === activeChat.id) {
-                return { ...chat, messages: [...chat.messages, message] };
-            }
-            return chat;
-        });
-        setChats(updatedChats);
-        setActiveChat(updatedChats.find(chat => chat.id === activeChat.id));
-        setMessage('');
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await axios.post(`${main_part_link}api/v1/chats/new_message`, {
+                chat_id: activeChat.id,
+                content: message
+            }, {
+                headers: {
+                    'Authorization': 'Bearer ' + getAuthToken()
+                }
+            });
+
+
+            const updatedChats = chats.map(chat => {
+                if (chat.id === activeChat.id) {
+                    return {
+                        ...chat,
+                        messages: [...chat.messages, message, response.data.message_answer]
+                    };
+                }
+                return chat;
+            });
+
+            setChats(updatedChats);
+            setActiveChat(updatedChats.find(chat => chat.id === activeChat.id));
+            setMessage('');
+        } catch (err) {
+            setError('Не удалось отправить сообщение');
+            console.error('Ошибка при отправке сообщения:', err);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -106,20 +230,18 @@ const Main = () => {
                                 >
                                     Админ панель
                                 </div>
-                                <div  className="p-2 text-white border-bottom border-secondary"
-                                      style={{ cursor: 'pointer' }}
-                                      onClick={() => navigate('/login')}>
+                                <div className="p-2 text-white border-bottom border-secondary"
+                                     style={{ cursor: 'pointer' }}
+                                     onClick={() => navigate('/login')}>
                                     Войти
                                 </div>
                                 <div className="p-2 text-white" style={{ cursor: 'pointer' }}>
                                     Выйти
                                 </div>
-
                             </div>
                         )}
                     </div>
                 </div>
-
                 {/* Кнопка новый чат */}
                 <button
                     className="btn w-100 mb-3 d-flex align-items-center justify-content-center"
@@ -138,17 +260,21 @@ const Main = () => {
                         </>
                     )}
                 </button>
-
                 {/* Сообщение об ошибке */}
                 {error && (
                     <div className="alert alert-danger p-2 mb-3">
                         {error}
                     </div>
                 )}
-
                 {/* Список чатов */}
                 <div className="flex-grow-1 overflow-auto">
-                    {chats.length > 0 ? (
+                    {isLoadingChats ? (
+                        <div className="text-center mt-3">
+                            <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    ) : chats.length > 0 ? (
                         chats.map(chat => (
                             <div
                                 key={chat.id}
@@ -164,12 +290,17 @@ const Main = () => {
                     )}
                 </div>
             </div>
-
             {/* Правая часть */}
             <div className="flex-grow-1 d-flex flex-column overflow-hidden">
                 {/* Содержимое чата */}
                 <div className="flex-grow-1 d-flex flex-column p-4 overflow-auto">
-                    {activeChat ? (
+                    {isLoadingChats ? (
+                        <div className="d-flex justify-content-center align-items-center h-100">
+                            <div className="spinner-border text-primary" role="status">
+                                <span className="visually-hidden">Загрузка...</span>
+                            </div>
+                        </div>
+                    ) : activeChat ? (
                         <div className="w-100">
                             {activeChat.messages.map((msg, idx) => (
                                 <div key={idx} className="mb-2 p-3 bg-dark rounded shadow-sm">
@@ -184,7 +315,6 @@ const Main = () => {
                         </div>
                     )}
                 </div>
-
                 {/* Поле ввода */}
                 {activeChat && (
                     <div
