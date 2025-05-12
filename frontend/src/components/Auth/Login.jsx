@@ -51,6 +51,7 @@ const LoginContent = () => {
             // console.log('Google token:', tokenResponse);
             window.location.href = `${main_part_link}oauth2/authorization/google`;
 
+
             // Отправляем id_token на ваш backend
         //     try {
         //         // const res = "";
@@ -128,8 +129,8 @@ const LoginContent = () => {
 
                 {/* Ссылка на главную */}
                 <div className="text-center mt-3">
-                    <Link to="/" className="text-decoration-none">
-                        На главную
+                    <Link to="/register" className="text-decoration-none">
+                        На регистрацию
                     </Link>
                 </div>
             </Container>

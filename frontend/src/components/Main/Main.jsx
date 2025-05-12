@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import {logoutUser} from "../Network/User_api";
 
 const Main = () => {
     const [chats, setChats] = useState([]);
@@ -12,7 +13,13 @@ const Main = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingChats, setIsLoadingChats] = useState(true);
     const [error, setError] = useState(null);
-    const userName = 'Гость';
+    const [userName, setUserName] = useState('Гость');
+    useEffect(() => {
+        const email = localStorage.getItem('name');
+        if (email) {
+            setUserName(email);
+        }
+    }, []);
     const menuRef = useRef(null);
     const navigate = useNavigate();
     const main_part_link = 'http://localhost:8080/';
@@ -64,8 +71,18 @@ const Main = () => {
                         id: chat.id,
                         title: chat.title || `Запрос #${chat.id}`,
                         messages: Array.isArray(messages)
-                            ? messages.map(m => m.content || m.text || JSON.stringify(m))
+                            ? messages.flatMap(m => {
+                                if (typeof m === 'string') return [m];
+                                if (m.message_question && m.message_answer) {
+                                    return [
+                                        `🧑‍💬 Вопрос: ${m.message_question}`,
+                                        `🤖 Ответ: ${m.message_answer}`
+                                    ];
+                                }
+                                return [m.content || m.text || JSON.stringify(m)];
+                            })
                             : []
+
                     });
                 } catch (e) {
                     console.error('Ошибка обработки чата:', e);
@@ -174,7 +191,11 @@ const Main = () => {
                 if (chat.id === activeChat.id) {
                     return {
                         ...chat,
-                        messages: [...chat.messages, message, response.data.message_answer]
+                        messages: [
+                            ...chat.messages,
+                            `🧑‍💬 Вопрос: ${message}`,
+                            `🤖 Ответ: ${response.data.message_answer || 'Нет ответа'}`
+                        ]
                     };
                 }
                 return chat;
@@ -224,21 +245,30 @@ const Main = () => {
                                 className="position-absolute bg-dark border border-secondary rounded mt-2"
                                 style={{ right: 0, zIndex: 10, minWidth: '150px' }}
                             >
-                                <div
-                                    className="p-2 text-white border-bottom border-secondary"
-                                    style={{ cursor: 'pointer' }}
-                                    onClick={() => navigate('/admin')}
-                                >
-                                    Админ панель
-                                </div>
+
                                 <div className="p-2 text-white border-bottom border-secondary"
                                      style={{ cursor: 'pointer' }}
                                      onClick={() => navigate('/login')}>
                                     Войти
                                 </div>
-                                <div className="p-2 text-white" style={{ cursor: 'pointer' }}>
+                                <div
+                                    className="p-2 text-white"
+                                    style={{ cursor: 'pointer' }}
+                                    onClick={async () => {
+                                        try {
+                                            await logoutUser(); // вызов API
+                                            console.log('Вы вышли');
+                                        } catch (err) {
+                                            console.error('Ошибка при выходе:', err);
+                                        } finally {
+                                            localStorage.removeItem('auth_token'); // очистка токена
+                                            navigate('/login'); // редирект на страницу логина
+                                        }
+                                    }}
+                                >
                                     Выйти
                                 </div>
+
                             </div>
                         )}
                     </div>
@@ -303,11 +333,26 @@ const Main = () => {
                         </div>
                     ) : activeChat ? (
                         <div className="w-100">
-                            {activeChat.messages.map((msg, idx) => (
-                                <div key={idx} className="mb-2 p-3 bg-dark rounded shadow-sm">
-                                    {msg}
-                                </div>
-                            ))}
+                            {activeChat.messages.map((msg, idx) => {
+                                const isAnswer = msg.startsWith('🤖 Ответ:');
+                                const isQuestion = msg.startsWith('🧑‍💬 Вопрос:');
+
+                                return (
+                                    <div
+                                        key={idx}
+                                        className={`mb-2 p-3 rounded shadow-sm ${isAnswer ? 'bg-secondary text-white align-self-end' : 'bg-dark text-light align-self-start'}`}
+                                        style={{
+                                            maxWidth: '80%',
+                                            alignSelf: isAnswer ? 'flex-end' : 'flex-start',
+                                            whiteSpace: 'pre-wrap'
+                                        }}
+                                    >
+                                        <strong>{isAnswer ? 'Ответ:' : isQuestion ? 'Вопрос:' : ''}</strong>{' '}
+                                        {msg.replace(/^🧑‍💬 Вопрос:\s?|^🤖 Ответ:\s?/, '')}
+                                    </div>
+                                );
+                            })}
+
                         </div>
                     ) : (
                         <div className="d-flex flex-column justify-content-center align-items-center h-100">
