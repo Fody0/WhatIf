@@ -20,9 +20,8 @@ public class ApiService {
     public ResponseEntity<String> postData(String message) {
         try {
             System.out.println("Starting generation with message: " + message);
-            String apiUrl = "https://twenty-patterns-wow-vulnerability.trycloudflare.com/generate";
-
-            // Create proper request body using DTO
+            String apiUrl = "https://cohen-welsh-equation-accompanying.trycloudflare.com";
+            apiUrl += "/generate";            // Create proper request body using DTO
             PromptRequest request = new PromptRequest(message);
 
             // Create headers
