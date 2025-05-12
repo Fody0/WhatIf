@@ -1,4 +1,4 @@
-Для запуска проекта нужно иметь установленный node.js и IntelliJIdea
+Для запуска проекта нужно иметь установленный node.js, IntelliJIdea, pgAdmin4
 Для запуска frontend в терминале 
 ```
 cd frontend
@@ -8,7 +8,7 @@ npm start
 
 
 
-Для запуска бэкенда нужно иметь IntelliJIdea
+Для запуска бэкенда нужно иметь IntelliJIdea и pgAdmin4
 
 Там открыть в IntelliJIdea папку backend, если проект автоматически не обнаружиться то выбрать pom.xml файл как файл проекта
 
@@ -23,7 +23,12 @@ npm start
 String apiUrl = "https://cohen-welsh-equation-accompanying.trycloudflare.com";
 ```
 
-Далее нажать кнопку Run которая находиться сверху IDE
+Нужно изменить в файле Ваш путь\WebsiteCloud\backend\src\main\resources\application.yml настройки подключения к базе данных на актуальные для вашей конфигурации postgresql
+username и password
+
+Запустить pgAdmin4 и вручную создать новую базу данных whatif_db
+
+Далее нажать кнопку Run в IntelliJIdea которая находиться сверху IDE
 
 Сайт будет находиться по ссылке
 http://localhost:3000/
