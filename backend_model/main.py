@@ -6,9 +6,13 @@ from bs4 import BeautifulSoup
 import re
 from typing import List, Dict
 import logging
+import json
+from pathlib import Path
+from sentence_transformers import SentenceTransformer, util
 import time
+from urllib.parse import urlparse
 
-# Set up logging
+# Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -17,175 +21,305 @@ app = FastAPI()
 
 class PromptRequest(BaseModel):
     prompt: str
+    language: str = "ru"
 
 
-# Initialize model
 llm = None
+embedder = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+
+# База знаний по периодам мировой истории
+HISTORY_KNOWLEDGE = {
+    "ancient": [
+        "Древний Египет существовал примерно с 3100 г. до н.э. до 332 г. до н.э.",
+        "Древняя Греция заложила основы западной философии, демократии и науки.",
+        "Римская империя доминировала в Средиземноморье с 27 г. до н.э. до 476 г. н.э."
+    ],
+    "medieval": [
+        "Средние века (V-XV века) характеризовались феодализмом и доминированием церкви.",
+        "Византийская империя сохранила римские традиции до 1453 года.",
+        "Арабский халифат был центром науки и культуры в VII-XIII веках."
+    ],
+    "modern": [
+        "Эпоха Возрождения (XIV-XVII века) возродила интерес к античному наследию.",
+        "Великие географические открытия (XV-XVII века) расширили представления о мире.",
+        "Реформация (XVI век) разделила христианскую Европу."
+    ],
+    "contemporary": [
+        "Промышленная революция (XVIII-XIX века) изменила экономику и общество.",
+        "Две мировые войны (XX век) кардинально изменили мировую политику.",
+        "Холодная война (1947-1991) определила вторую половину XX века."
+    ]
+}
+
+# источники по мировой истории
+WORLD_HISTORY_SOURCES = [
+    # Общие исторические ресурсы
+    {'type': 'website', 'value': 'https://www.history.com', 'category': 'general', 'reliability': 0.85},
+    {'type': 'website', 'value': 'https://www.britannica.com', 'category': 'general', 'reliability': 0.9},
+    {'type': 'website', 'value': 'https://www.ancient.eu', 'category': 'ancient', 'reliability': 0.88},
+    {'type': 'website', 'value': 'https://www.medievalists.net', 'category': 'medieval', 'reliability': 0.82},
+
+    # Альтернативная история
+    {'type': 'website', 'value': 'https://www.alternatehistory.com', 'category': 'alternative', 'reliability': 0.8},
+    # {'type': 'website', 'value': 'https://www.reddit.com/r/HistoricalWhatIf/', 'category': 'alternative',
+    # 'reliability': 0.75},
+
+    # Научные ресурсы (открытый доступ)
+    {'type': 'website', 'value': 'https://www.jstor.org', 'category': 'academic', 'reliability': 0.95},
+    {'type': 'website', 'value': 'https://www.academia.edu', 'category': 'academic', 'reliability': 0.92},
+
+    # Российские/советские источники
+    {'type': 'website', 'value': 'https://www.rbth.com', 'category': 'russian', 'reliability': 0.85},
+    {'type': 'website', 'value': 'https://histrf.ru', 'category': 'russian', 'reliability': 0.87},
+    {'type': 'website', 'value': 'https://historyrussia.org', 'category': 'russian', 'reliability': 0.87}
+]
 
 
 @app.on_event("startup")
 async def load_model():
     global llm
-    llm = Llama(
-        model_path="C:/Users/user/Desktop/Hack/models/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
-        n_ctx=4096,
-        n_gpu_layers=45,
-        n_threads=6,
-        n_batch=512,
-        offload_kqv=True,
-        main_gpu=0,
-        tensor_split=[1],
-        mul_mat_q=True,
-        flash_attn=False,
-        low_vram=True,
-        lock_alloc=False
-    )
+    try:
+        llm = Llama(
+            model_path="C:/Users/user/Desktop/Hack/models/mistral-7b-instruct-v0.2.Q4_K_M.gguf",
+            n_ctx=4096,
+            n_gpu_layers=45,
+            n_threads=8,
+            n_batch=512,
+            verbose=True
+        )
+        logger.info("Модель успешно загружена")
+    except Exception as e:
+        logger.error(f"Ошибка загрузки модели: {str(e)}")
+        raise
+
+
+def determine_historical_period(query: str) -> str:
+    """Определяем исторический период по запросу с улучшенной логикой для альтернативной истории"""
+    query_lower = query.lower()
+
+    # Сначала проверяем современные гипотетические вопросы (не альтернативная история)
+    modern_keywords = ['илон маск', 'тесла', 'twitter', 'социальные сети', 'современные технологии']
+    if any(word in query_lower for word in modern_keywords):
+        return "modern_hypothetical"  # Специальная категория для современных гипотетических вопросов
+
+    # Затем проверяем настоящие альтернативно-исторические вопросы
+    if any(word in query_lower for word in ['что если', 'альтернативн', 'если бы']):
+        # Определяем период для альтернативной истории
+        if any(word in query_lower for word in ['древн', 'античн', 'египет', 'греци', 'рим']):
+            return "ancient"
+        elif any(word in query_lower for word in ['средн', 'меди', 'феодал', 'визант']):
+            return "medieval"
+        elif any(word in query_lower for word in ['новое время', 'возрожден', 'реформац']):
+            return "modern"
+        elif any(word in query_lower for word in ['новейш', 'мировая война', 'холодная']):
+            return "contemporary"
+        elif any(word in query_lower for word in ['ссср', 'советск', 'росси']):
+            return "russian"
+        return "alternative"  # Общая альтернативная история
+
+    # Обычные исторические вопросы
+    if any(word in query_lower for word in ['древн', 'античн', 'египет', 'греци', 'рим']):
+        return "ancient"
+    elif any(word in query_lower for word in ['средн', 'меди', 'феодал', 'визант']):
+        return "medieval"
+    elif any(word in query_lower for word in ['новое время', 'возрожден', 'реформац']):
+        return "modern"
+    elif any(word in query_lower for word in ['новейш', 'мировая война', 'холодная']):
+        return "contemporary"
+    elif any(word in query_lower for word in ['ссср', 'советск', 'росси']):
+        return "russian"
+    return "general"
+
+
+def get_relevant_sources(period: str, is_alternative: bool = False) -> List[Dict]:
+    """Выбираем релевантные источники для периода с учетом modern_hypothetical"""
+    if period == "modern_hypothetical":
+        return []  # Не используем источники для современных гипотетических вопросов
+
+    if is_alternative and period != "modern_hypothetical":
+        return [s for s in WORLD_HISTORY_SOURCES if s['category'] == 'alternative']
+
+    return [s for s in WORLD_HISTORY_SOURCES
+            if s['category'] in [period, 'general'] or
+            (period == 'russian' and s['category'] == 'russian')]
+
+
+def extract_content_from_html(html: str, url: str) -> str:
+    """Извлекаем контент с учетом специфики разных сайтов"""
+    soup = BeautifulSoup(html, 'html.parser')
+    domain = urlparse(url).netloc
+
+    # Специфичные правила для разных сайтов
+    if 'history.com' in domain:
+        content = soup.find('article') or soup.select_one('.article-content')
+    elif 'britannica.com' in domain:
+        content = soup.find('div', class_='article-body')
+    elif 'ancient.eu' in domain:
+        content = soup.find('div', class_='text-content')
+    else:  # Общий случай
+        content = soup.find(['article', 'main']) or soup.body
+
+    return clean_text(content.get_text()) if content else ""
 
 
 def clean_text(text: str) -> str:
-    """Clean text by removing excessive newlines, references, and unwanted characters."""
-    text = re.sub(r'\[\d+\]', '', text)  # Remove [1], [2], etc.
-    text = re.sub(r'\n+', '\n', text)  # Replace multiple newlines with one
-    text = re.sub(r'\s+', ' ', text)  # Replace multiple spaces with one
+    """Очистка текста"""
+    text = re.sub(r'\[\d+\]', '', text)
+    text = re.sub(r'\n+', '\n', text)
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r'(Read also|Share|Comments|Navigation|©|All rights reserved)', '', text, flags=re.IGNORECASE)
     return text.strip()
 
 
-def scrape_website(url: str, max_chars: int = 1500) -> str:
-    """Scrape text content from a website."""
-    try:
-        headers = {'User-Agent': 'MyLLMApp/1.0 (your.email@example.com)'}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+async def get_historical_context(query: str) -> str:
+    """Получаем контекст для исторического запроса"""
+    # тип запроса
+    is_alternative = any(word in query.lower() for word in ['что если', 'альтернативн', 'если бы'])
+    period = determine_historical_period(query)
 
-        # Extract text from relevant tags (e.g., <p>, <div>, <article>)
-        content = ''
-        for tag in soup.find_all(['p', 'div', 'article']):
-            text = tag.get_text(strip=True)
-            if text:
-                content += text + ' '
+    # подходящие источники
+    sources = get_relevant_sources(period, is_alternative)
 
-        content = clean_text(content)
+    # базовые знания
+    context_parts = []
+    if period in HISTORY_KNOWLEDGE:
+        context_parts.append({
+            'source': 'База знаний: ' + period,
+            'content': ' '.join(HISTORY_KNOWLEDGE[period]),
+            'reliability': 0.8
+        })
 
-        # Truncate to fit context length
-        if len(content) > max_chars:
-            content = content[:max_chars] + "..."
-        logger.info(f"Scraped content from {url}: {len(content)} characters")
-        return content
-    except Exception as e:
-        logger.error(f"Error scraping {url}: {str(e)}")
-        return f"Error scraping {url}: {str(e)}"
+    for source in sources[:3]:  # Ограничиваем число запросов
+        try:
+            if source['type'] == 'website':
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'text/html'
+                }
+                response = requests.get(source['value'], headers=headers, timeout=10)
+                if response.status_code == 200:
+                    content = extract_content_from_html(response.text, source['value'])
+                    if content:
+                        context_parts.append({
+                            'source': source['value'],
+                            'content': content[:1500],  # Ограничение длины
+                            'reliability': source['reliability']
+                        })
+        except Exception as e:
+            logger.warning(f"Ошибка при обработке {source['value']}: {str(e)}")
+
+    if not context_parts:
+        return "Не удалось получить информацию из доступных источников."
+
+    # Сортируем по надежности
+    context_parts.sort(key=lambda x: x['reliability'], reverse=True)
+
+    # Формируем контекст
+    return "\n\n".join(
+        f"Источник: {c['source']} (Надежность: {c['reliability']:.1f})\n"
+        f"{c['content'][:800]}..."  # Дополнительное ограничение
+        for c in context_parts[:2]  # Берем 2 лучших источника
+    )
 
 
-def get_context(query: str, sources: List[Dict[str, str]], max_chars_per_source: int = 1500) -> str:
-    """Retrieve context from specified sources only."""
-    context = ""
-    used_sources = []
-    for source in sources:
-        source_type = source.get('type')
-        source_value = source.get('value')
-        used_sources.append(source_value)
+def build_history_prompt(query: str, context: str, language: str = "ru") -> str:
+    """Строим промпт с разными шаблонами для разных типов вопросов"""
+    period = determine_historical_period(query)
 
-        if source_type == 'website':
-            content = scrape_website(source_value, max_chars_per_source)
-        elif source_type == 'file':
-            try:
-                with open(source_value, 'r', encoding='utf-8') as f:
-                    content = clean_text(f.read())
-                    if len(content) > max_chars_per_source:
-                        content = content[:max_chars_per_source] + "..."
-                logger.info(f"Read content from file {source_value}: {len(content)} characters")
-            except Exception as e:
-                logger.error(f"Error reading file {source_value}: {str(e)}")
-                content = f"Error reading file {source_value}: {str(e)}"
+    if period == "modern_hypothetical":
+        if language == "ru":
+            return f"""Вы — эксперт по анализу гипотетических сценариев. Дайте краткий анализ (3-5 предложений) на вопрос:
+
+Вопрос: {query}
+
+Ответ должен:
+1. Быть логически обоснованным
+2. Учитывать текущие технологические и социальные тренды
+3. Быть написан понятным языком
+4. Объём: до 100 слов.
+
+Ответ:"""
         else:
-            logger.warning(f"Unknown source type: {source_type}")
-            content = f"Unknown source type: {source_type}"
+            return f"""You are a hypothetical scenario analyst. Provide a brief analysis (3-5 sentences) for the question:
 
-        context += f"\n\nSource: {source_value}\n{content}"
+Question: {query}
 
-    # Log used sources
-    logger.info(f"Sources used for query '{query}': {', '.join(used_sources)}")
+The answer should:
+1. Be logically sound
+2. Consider current technological and social trends
+3. Use clear language
+4. Volume: up to 100 words
 
-    # Ensure total context fits within model constraints
-    if len(context) > 1800:
-        context = context[:1800] + "..."
-        logger.info(f"Context truncated to {len(context)} characters")
-    return context
+Answer:"""
+    else:
+        if language == "ru":
+            return f"""Вы — эксперт по мировой истории. Дайте краткий ответ (3-5 предложений) на вопрос, 
+            используя предоставленные данные.
 
+Контекст:
+{context[:1200]}
 
-def build_rag_prompt(user_query: str, context: str) -> str:
-    """Build a prompt that strictly instructs the model to use only the provided context."""
-    prompt = f"""
-Вы - ИИ-ассистент, который обязан отвечать на вопросы, используя ТОЛЬКО информацию из предоставленного контекста. 
-Категорически запрещено использовать любые внутренние знания модели, 
-предобученные данные или любые другие источники, кроме указанного контекста. 
-Если в контексте недостаточно информации для ответа, четко укажите: 
-"Недостаточно информации в предоставленном контексте." 
-Ответ должен быть точным, без выдумывания или дополнения фактов.
+Вопрос: {query}
 
-**Контекст**:
-{context}
+Ответ должен:
+1. Быть исторически точным
+2. Учитывать разные точки зрения
+3. Указать источники информации
+4. Быть написан понятным языком
+5. Главное последствие 
+6. Ключевой исторический факт
+7. Альтернативный сценарий (если уместно)
+8. Объём: до 100 слов.
 
-**Вопрос**:
-{user_query}
+Ответ:"""
+        else:
+            return f"""You are a world history expert. Provide a detailed answer using the given context.
 
-**Ответ**:
-"""
-    return prompt
+Context:
+{context[:1200]}
+
+Question: {query}
+
+The answer should:
+1. Be historically accurate
+2. Consider different perspectives
+3. Cite sources
+4. Use clear language
+5. Volume: up to 100 words
+
+Answer:"""
 
 
 @app.post("/generate")
-async def generate_text(request: PromptRequest):
-    start = time.time()
-    # Define sources (expandable list)
-    sources = [
-        {'type': 'website', 'value': 'https://historyrussia.org/'},
-        {'type': 'website', 'value': 'https://cyberleninka.ru/'},
-        {'type': 'website', 'value': 'https://www.elibrary.ru/'},
-        {'type': 'website', 'value': 'https://scholar.archive.org/'},
-        {'type': 'website', 'value': 'https://historyrussia.org/'}# Primary source
-        # Add more sources here, e.g.:
-        # {'type': 'website', 'value': 'https://example.com'},
-        # {'type': 'file', 'value': 'path/to/document.txt'},
-    ]
+async def generate_response(request: PromptRequest):
+    try:
+        # Получаем исторический контекст
+        context = await get_historical_context(request.prompt)
+        logger.info(f"Получен контекст длиной {len(context)} символов")
 
-    # Get context from sources
-    context = get_context(request.prompt, sources)
+        # Строим промпт
+        prompt = build_history_prompt(request.prompt, context, request.language)
+        logger.info(f"Длина промпта: {len(prompt)}")
 
-    # Build RAG prompt
-    rag_prompt = build_rag_prompt(request.prompt, context)
+        # Генерируем ответ
+        response = llm.create_completion(
+            prompt=prompt,
+            max_tokens=512,
+            temperature=0.3,
+            top_p=0.9,
+            repeat_penalty=1.1,
+            stream=False
+        )
 
-    # Generate response
-    response = llm.create_completion(
-        prompt=rag_prompt,
-        max_tokens=512,
-        temperature=0.7,  # Lower temperature for stricter adherence to context
-        top_k=20,  # Narrower token selection
-        top_p=0.8,  # More deterministic outputs
-        repeat_penalty=1.15,
-        frequency_penalty=0.25,
-        stream=False,
-        seed=12345
-    )
-    logger.info(f"Generated response for query '{request.prompt}': {response['choices'][0]['text']}")
-    end = time.time()
-    logger.info(end - start)
-    return {"response": response["choices"][0]["text"]}
+        result = response['choices'][0]['text'].strip()
+        return {"response": result}
 
-
-def query_llama(prompt: str):
-    response = requests.post(
-        "http://localhost:8008/generate",
-        json={"prompt": prompt}
-    )
-    return response.json()
+    except Exception as e:
+        logger.error(f"Ошибка генерации: {str(e)}")
+        return {"response": "Не удалось сгенерировать ответ. Пожалуйста, попробуйте переформулировать вопрос."}
 
 
 if __name__ == "__main__":
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() in ["exit", "quit"]:
-            break
-        result = query_llama(user_input)
-        print(f"AI: {result['response']}")
+    import uvicorn
+
+    uvicorn.run(app, host="0.0.0.0", port=8008)
