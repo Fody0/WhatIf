@@ -1,6 +1,7 @@
 package com.Fody.WhatIfApp.config;
 
 import com.Fody.WhatIfApp.user.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,4 +50,8 @@ public class ApplicationConfig {
         return new RestTemplate();
     }
 
+    @Bean
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper();
+    }
 }

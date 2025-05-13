@@ -28,3 +28,7 @@ spring:
         format_sql: true
     database: postgresql
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+api:
+  base:
+    url: https://drinking-provinces-source-tsunami.trycloudflare.com

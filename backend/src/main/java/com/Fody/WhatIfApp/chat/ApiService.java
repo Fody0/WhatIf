@@ -2,25 +2,27 @@ package com.Fody.WhatIfApp.chat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
+@RequiredArgsConstructor
 public class ApiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    // Constructor with dependency injection
-    public ApiService(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplate;
-        this.objectMapper = objectMapper;
-    }
+    @Value("${api.base.url:https://default-api-url.com}") // Добавляем значение по умолчанию
+    private String apiBaseUrl;
 
     public ResponseEntity<String> postData(String message) {
         try {
             System.out.println("Starting generation with message: " + message);
-            String apiUrl = "https://cohen-welsh-equation-accompanying.trycloudflare.com";
+
+            System.out.println("URL to send request "+apiBaseUrl);
+
+            String apiUrl = apiBaseUrl;
             apiUrl += "/generate";            // Create proper request body using DTO
             PromptRequest request = new PromptRequest(message);
 
