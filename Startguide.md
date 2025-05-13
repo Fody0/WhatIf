@@ -10,6 +10,18 @@
 
 Код для модели предоставлен в папке backend_model, если нужно будет запустить модель локально, но гайда по запуску модели локально нет, так как там много нюансов в зависимости от системы
 
+Перед запуском нужно вставить актуальные настройки для подключения в файл Вашпуть\WhatIf\backend\src\main\resources\application.yml
+
+Вот здесь изменить username и password на актуальные для вашего postgres
+
+```
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/whatif_db
+    username: postgres
+    password: postgres
+```
+
+
 После получения актуальной ссылки нужно запустить 
 ```
 start_project.bat --api.base.url=актуальная_ссылка
