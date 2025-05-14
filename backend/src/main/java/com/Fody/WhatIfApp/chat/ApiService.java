@@ -13,24 +13,22 @@ public class ApiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
 
-    @Value("${api.base.url:https://default-api-url.com}") // Добавляем значение по умолчанию
+    @Value("${api.base.url:https://default-api-url.com}")
     private String apiBaseUrl;
 
     public ResponseEntity<String> postData(String message) {
         try {
             System.out.println("Starting generation with message: " + message);
 
-            System.out.println("URL to send request "+apiBaseUrl);
+            System.out.println("URL to send request " + apiBaseUrl);
 
             String apiUrl = apiBaseUrl;
-            apiUrl += "/generate";            // Create proper request body using DTO
+            apiUrl += "/generate";
             PromptRequest request = new PromptRequest(message);
 
-            // Create headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Create entity with serialized JSON
             HttpEntity<PromptRequest> requestEntity = new HttpEntity<>(request, headers);
 
             return restTemplate.postForEntity(apiUrl, requestEntity, String.class);
