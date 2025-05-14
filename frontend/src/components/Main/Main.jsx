@@ -237,12 +237,14 @@ const Main = () => {
 
     // Рендер компонента
     return (
-        <div className={`d-flex vh-100 ${theme === 'dark' ? 'bg-black text-light' : 'bg-light text-dark'} position-relative`}
-             style={{ overflowX: 'hidden', width: '100%' }}>
+        <div
+            className={`d-flex vh-100 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'} position-relative`}
+            style={{ overflowX: 'hidden', width: '100%' }}>
 
-            {/* Левая панель */}
-            <div className={`border-end d-flex flex-column p-3 ${theme === 'dark' ? 'bg-black border-secondary' : 'bg-white border-light'}`}
-                 style={{ width: '280px' }}>
+            {/* Левая панель - исправленная версия */}
+            <div
+                className={`border-end d-flex flex-column p-3 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'}`}
+                style={{ width: '280px' }}> {/* ✅ Правильное расположение style */}
 
                 {/* Заголовок и меню пользователя */}
                 <div className="d-flex align-items-center justify-content-between mb-4">
