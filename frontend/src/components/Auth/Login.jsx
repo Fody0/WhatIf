@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google'; // OAuth2 для Google
 import { loginUser, initialLoginData } from '../Network/User_api';
 import { loginValidationSchema } from '../Network/Validation';
@@ -13,6 +13,10 @@ const LoginContent = () => {
     const [formData, setFormData] = useState(initialLoginData);
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
+    useEffect(() => {
+        document.body.className = 'bg-light text-dark';
+
+    }, []);
 
     // Валидация формы
     const validate = async () => {

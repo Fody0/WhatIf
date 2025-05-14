@@ -95,8 +95,11 @@ export const logoutUser = async () => {
 
 
         setAuthToken('');
-        localStorage.clear();
-
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('name');
+        localStorage.removeItem('email');
+        localStorage.removeItem('middle_name');
+        localStorage.removeItem('surname');
 
     } catch (error) {
         console.error('Ошибка при выходе из системы:', error);
