@@ -391,7 +391,7 @@ const Main = () => {
                         </div>
                     ) : (
                         <div className="d-flex flex-column justify-content-center align-items-center h-100">
-                            <h1 className="mb-3 fw-bold text-center">Добро пожаловать в NVplans ✨</h1>
+                            <h1 className="mb-3 fw-bold text-center">Добро пожаловать в WhatIf ✨</h1>
                             <p className="text-muted">Начните новый запрос</p>
                         </div>
                     )}
