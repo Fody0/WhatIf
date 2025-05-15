@@ -250,7 +250,7 @@ const Main = () => {
                 <div className="d-flex align-items-center justify-content-between mb-4">
                     <div className="d-flex align-items-center">
                         <i className="bi bi-stars text-primary fs-3 me-2"></i>
-                        <h4 className="m-0 fw-bold">NVplans</h4>
+                        <h4 className="m-0 fw-bold">WhatIf</h4>
                     </div>
                     <div className="position-relative" ref={menuRef}>
                         <div className="small" style={{ cursor: 'pointer' }} onClick={() => setShowMenu(!showMenu)}>

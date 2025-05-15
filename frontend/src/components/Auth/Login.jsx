@@ -135,7 +135,7 @@ const LoginContent = () => {
                 {/* Ссылка на главную */}
                 <div className="text-center mt-3">
                     <Link to="/register" className="text-decoration-none">
-                        На регистрацию
+                        Зарегистрироваться
                     </Link>
                 </div>
             </Container>
