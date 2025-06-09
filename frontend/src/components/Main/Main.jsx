@@ -4,9 +4,9 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { logoutUser } from "../Network/User_api";
+import './style.css';
 
 const Main = () => {
-    // Состояния компонента
     const [chats, setChats] = useState([]);
     const [activeChat, setActiveChat] = useState(null);
     const [message, setMessage] = useState('');
@@ -16,20 +16,14 @@ const Main = () => {
     const [isLoadingChats, setIsLoadingChats] = useState(true);
     const [error, setError] = useState(null);
     const [userName, setUserName] = useState('Гость');
-    const [theme, setTheme] = useState(() => {
-        // Безопасное получение темы из localStorage
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('theme') || 'light';
-        }
-        return 'light';
-    });
+    const [theme, setTheme] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('theme') || 'dark' : 'dark'));
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // New state for sidebar toggle
 
     const menuRef = useRef(null);
     const messagesEndRef = useRef(null);
     const navigate = useNavigate();
     const main_part_link = 'http://localhost:8080/';
 
-    // Эффекты
     useEffect(() => {
         const email = localStorage.getItem('name');
         if (email) setUserName(email);
@@ -37,16 +31,14 @@ const Main = () => {
 
     useEffect(() => {
         if (typeof document !== 'undefined') {
-            document.body.className = theme === 'dark' ? 'bg-black text-light' : 'bg-light text-dark';
+            document.body.className = theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark';
         }
     }, [theme]);
 
     useEffect(() => {
-        // Прокрутка вниз при изменении сообщений
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [activeChat?.messages]);
 
-    // Функции
     const toggleTheme = () => {
         const newTheme = theme === 'dark' ? 'light' : 'dark';
         setTheme(newTheme);
@@ -55,12 +47,7 @@ const Main = () => {
         }
     };
 
-    const getAuthToken = () => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('auth_token');
-        }
-        return null;
-    };
+    const getAuthToken = () => localStorage.getItem('auth_token') || null;
 
     const fetchAllChats = async () => {
         setIsLoadingChats(true);
@@ -75,47 +62,28 @@ const Main = () => {
             });
 
             const chatsMap = response.data.chats_with_messages || {};
-            const loadedChats = [];
-
-            for (const [chatEntity, messages] of Object.entries(chatsMap)) {
-                try {
-                    let chat;
-                    if (typeof chatEntity === 'string') {
-                        try {
-                            chat = JSON.parse(chatEntity);
-                        } catch {
-                            chat = parseChatEntity(chatEntity);
-                        }
-                    } else {
-                        chat = chatEntity;
-                    }
-
-                    if (!chat || !chat.id) continue;
-
-                    loadedChats.push({
-                        id: chat.id,
-                        title: chat.title || `Запрос #${chat.id}`,
-                        messages: Array.isArray(messages)
-                            ? messages.flatMap(m => {
-                                if (typeof m === 'string') return [{ type: 'text', content: m }];
-                                if (m.message_question && m.message_answer) {
-                                    return [
-                                        { type: 'question', content: m.message_question },
-                                        { type: 'answer', content: m.message_answer }
-                                    ];
-                                }
-                                return [{ type: 'text', content: m.content || m.text || JSON.stringify(m) }];
-                            }) : []
-                    });
-                } catch (e) {
-                    console.error('Ошибка обработки чата:', e);
-                }
-            }
+            const loadedChats = Object.entries(chatsMap).flatMap(([chatEntity, messages]) => {
+                let chat;
+                if (typeof chatEntity === 'string') {
+                    try { chat = JSON.parse(chatEntity); } catch { chat = parseChatEntity(chatEntity); }
+                } else { chat = chatEntity; }
+                if (!chat || !chat.id) return [];
+                return [{
+                    id: chat.id,
+                    title: chat.title || `Запрос #${chat.id}`,
+                    messages: Array.isArray(messages) ? messages.flatMap(m => {
+                        if (typeof m === 'string') return [{ type: 'text', content: m }];
+                        if (m.message_question && m.message_answer) return [
+                            { type: 'question', content: m.message_question },
+                            { type: 'answer', content: m.message_answer }
+                        ];
+                        return [{ type: 'text', content: m.content || m.text || JSON.stringify(m) }];
+                    }) : []
+                }];
+            });
 
             setChats(loadedChats);
-            if (loadedChats.length > 0) {
-                setActiveChat(loadedChats[0]);
-            }
+            if (loadedChats.length > 0) setActiveChat(loadedChats[0]);
         } catch (err) {
             console.error('Ошибка:', err);
             setError('Ошибка загрузки чатов. Проверьте консоль для деталей.');
@@ -130,7 +98,6 @@ const Main = () => {
 
     const parseChatEntity = (entity) => {
         if (!entity) return null;
-
         const regex = /ChatEntity\((.*?)\)/;
         const match = entity.match(regex);
         if (match && match[1]) {
@@ -143,15 +110,10 @@ const Main = () => {
                     if (userMatch && userMatch[1]) {
                         const userProps = userMatch[1].split(',').map(p => p.trim());
                         const user = {};
-                        userProps.forEach(p => {
-                            const [k, v] = p.split('=').map(x => x.trim());
-                            user[k] = v.replace(/"/g, '');
-                        });
+                        userProps.forEach(p => { const [k, v] = p.split('=').map(x => x.trim()); user[k] = v.replace(/"/g, ''); });
                         chat[key] = user;
                     }
-                } else {
-                    chat[key] = val.replace(/"/g, '');
-                }
+                } else { chat[key] = val.replace(/"/g, ''); }
             });
             return chat;
         }
@@ -229,24 +191,28 @@ const Main = () => {
             if (menuRef.current && !menuRef.current.contains(event.target)) {
                 setShowMenu(false);
             }
+            if (isSidebarOpen && !event.target.closest('.sidebar') && !event.target.closest('.menu-toggle-btn')) {
+                setIsSidebarOpen(false);
+            }
         };
 
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isSidebarOpen]);
 
-    // Рендер компонента
     return (
-        <div
-            className={`d-flex vh-100 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'} position-relative`}
-            style={{ overflowX: 'hidden', width: '100%' }}>
+        <div className={`d-flex vh-100 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'} position-relative main-container`}>
+            {/* Toggle Button for Mobile */}
+            <button
+                className="menu-toggle-btn btn btn-primary d-block d-md-none position-absolute"
+                style={{ top: '10px', left: '10px', zIndex: 30 }}
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            >
+                <i className="bi bi-list"></i>
+            </button>
 
-            {/* Левая панель - исправленная версия */}
-            <div
-                className={`border-end d-flex flex-column p-3 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'}`}
-                style={{ width: '280px' }}> {/* ✅ Правильное расположение style */}
-
-                {/* Заголовок и меню пользователя */}
+            {/* Левая панель */}
+            <div className={`sidebar ${isSidebarOpen ? 'open' : ''} border-end d-flex flex-column p-3 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'}`} style={{ width: '280px' }}>
                 <div className="d-flex align-items-center justify-content-between mb-4">
                     <div className="d-flex align-items-center">
                         <i className="bi bi-stars text-primary fs-3 me-2"></i>
@@ -257,22 +223,24 @@ const Main = () => {
                             {userName} <i className="bi bi-caret-down-fill ms-1"></i>
                         </div>
                         {showMenu && (
-                            <div className={`position-absolute ${theme === 'dark' ? 'bg-dark border-secondary' : 'bg-white border-light'} border rounded mt-2`}
-                                 style={{ right: 0, zIndex: 10, minWidth: '150px' }}>
+                            <div
+                                className={`position-absolute ${theme === 'dark' ? 'bg-dark border-secondary' : 'bg-white border-light'} border rounded mt-2`}
+                                style={{ right: 0, zIndex: 10, minWidth: '150px' }}
+                            >
                                 <div className="p-2" style={{ cursor: 'pointer' }} onClick={toggleTheme}>
-                                    {theme === 'dark' ? 'Светлая тема 🌞' : 'Тёмная тема 🌙'}
+                                    {theme === 'dark' ? 'Светлая тема ' : 'Тёмная тема '}
                                 </div>
                                 {getAuthToken() ? (
-                                    <div className="p-2" style={{ cursor: 'pointer' }} onClick={async () => {
-                                        try {
-                                            await logoutUser();
-                                        } catch (err) {
-                                            console.error(err);
-                                        } finally {
-                                            localStorage.removeItem('auth_token');
-                                            navigate('/login');
-                                        }
-                                    }}>
+                                    <div
+                                        className="p-2"
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={async () => {
+                                            try { await logoutUser(); } catch (err) { console.error(err); } finally {
+                                                localStorage.removeItem('auth_token');
+                                                navigate('/login');
+                                            }
+                                        }}
+                                    >
                                         Выйти
                                     </div>
                                 ) : (
@@ -285,10 +253,11 @@ const Main = () => {
                     </div>
                 </div>
 
-                {/* Кнопка нового чата */}
-                <button className="btn w-100 mb-3 d-flex align-items-center justify-content-center btn-primary"
-                        onClick={handleNewChat}
-                        disabled={isCreatingChat}>
+                <button
+                    className="btn w-100 mb-3 d-flex align-items-center justify-content-center btn-primary"
+                    onClick={handleNewChat}
+                    disabled={isCreatingChat}
+                >
                     {isCreatingChat ? (
                         <>
                             <span className="spinner-border spinner-border-sm me-2"></span> Создание...
@@ -302,7 +271,6 @@ const Main = () => {
 
                 {error && <div className="alert alert-danger p-2 mb-3">{error}</div>}
 
-                {/* Список чатов */}
                 <div className="flex-grow-1 overflow-auto">
                     {isLoadingChats ? (
                         <div className="text-center mt-3">
@@ -310,17 +278,19 @@ const Main = () => {
                         </div>
                     ) : chats.length > 0 ? (
                         chats.map(chat => (
-                            <div key={chat.id}
-                                 className={`p-2 mb-2 rounded ${activeChat?.id === chat.id
-                                     ? theme === 'dark'
-                                         ? 'bg-white text-dark'
-                                         : 'bg-dark text-light'
-                                     : theme === 'dark'
-                                         ? 'bg-dark text-light'
-                                         : 'bg-light text-dark'
-                                 }`}
-                                 style={{ cursor: 'pointer' }}
-                                 onClick={() => setActiveChat(chat)}>
+                            <div
+                                key={chat.id}
+                                className={`p-2 mb-2 rounded ${activeChat?.id === chat.id
+                                    ? theme === 'dark'
+                                        ? 'bg-white text-dark'
+                                        : 'bg-dark text-light'
+                                    : theme === 'dark'
+                                        ? 'bg-dark text-light'
+                                        : 'bg-light text-dark'
+                                }`}
+                                style={{ cursor: 'pointer' }}
+                                onClick={() => setActiveChat(chat)}
+                            >
                                 {chat.title}
                             </div>
                         ))
@@ -339,112 +309,98 @@ const Main = () => {
                         </div>
                     ) : activeChat ? (
                         <div className="w-100" style={{ maxWidth: '900px', margin: '0 auto' }}>
-                            {activeChat.messages.map((msg, idx) => {
-                                const isAnswer = msg.type === 'answer';
-                                const isQuestion = msg.type === 'question';
+                            {activeChat.messages.length === 0 ? (
+                                <div className="d-flex flex-column justify-content-end align-items-center text-center px-3" style={{ height: '70vh', paddingBottom: '15vh' }}>
+                                    <h1 className="mb-4" style={{ fontSize: '2rem', fontWeight: '600', color: theme === 'dark' ? '#fff' : '#000' }}>Чем я могу помочь?</h1>
+                                    <div className="input-group" style={{ width: '100%', maxWidth: '900px' }}>
+                                        <input
+                                            type="text"
+                                            className={`form-control ${theme === 'dark' ? 'bg-dark text-white border-secondary' : 'bg-white text-dark border-dark'} rounded-pill px-4 py-3`}
+                                            placeholder="Введите ваш запрос..."
+                                            value={message}
+                                            onChange={(e) => setMessage(e.target.value)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
+                                            style={{ fontSize: '1rem', paddingRight: '50px' }}
+                                        />
+                                        <button
+                                            className="btn btn-primary rounded-circle p-2 position-absolute"
+                                            style={{ width: '40px', height: '40px', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 5 }}
+                                            onClick={handleSendMessage}
+                                            disabled={isSendingMessage}
+                                        >
+                                            {isSendingMessage ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-arrow-up"></i>}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                activeChat.messages.map((msg, idx) => {
+                                    const isAnswer = msg.type === 'answer';
+                                    const isQuestion = msg.type === 'question';
 
-
-                                return (
-                                    <div key={idx} className={`mb-4 ${isQuestion ? 'd-flex justify-content-end' : 'd-flex justify-content-start'}`}>
-                                        <div className={`p-3 ${isQuestion
-                                            ? theme === 'dark'
-                                                ? 'bg-primary text-white'
-                                                : 'bg-primary text-white'
-                                            : theme === 'dark'
-                                                ? 'bg-secondary text-light'
-                                                : 'bg-light text-dark border'
-                                        }`}
-                                             style={{
-                                                 maxWidth: '80%',
-                                                 borderRadius: isQuestion
-                                                     ? '28px 28px 6px 28px'  // Умеренное скругление + острый угол слева внизу
-                                                     : '28px 28px 28px 6px',  // Умеренное скругление + острый угол справа внизу
-                                                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                                 overflow: 'hidden'
-                                             }}>
-                                            {isQuestion && (
-                                                <div className="d-flex align-items-center mb-2 justify-content-end">
-                                                    <small className="text-muted me-2">Вы</small>
-                                                    <div className="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center"
-                                                         style={{ width: '28px', height: '28px' }}>
-                                                        <i className="bi bi-person-fill" style={{ fontSize: '12px' }}></i>
+                                    return (
+                                        <div key={idx} className={`mb-4 ${isQuestion ? 'd-flex justify-content-end' : 'd-flex justify-content-start'}`}>
+                                            <div
+                                                className={`p-3 ${isQuestion ? 'bg-primary text-white' : 'bg-secondary text-light'}`}
+                                                style={{
+                                                    maxWidth: '80%',
+                                                    borderRadius: isQuestion ? '28px 28px 6px 28px' : '28px 28px 28px 6px',
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                                    overflow: 'hidden',
+                                                }}
+                                            >
+                                                {isQuestion && (
+                                                    <div className="d-flex align-items-center mb-2 justify-content-end">
+                                                        <small className="text-muted me-2">Вы</small>
+                                                        <div className="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px' }}>
+                                                            <i className="bi bi-person-fill" style={{ fontSize: '12px' }}></i>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            )}
-                                            {isAnswer && (
-                                                <div className="d-flex align-items-center mb-2">
-                                                    <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center"
-                                                         style={{ width: '28px', height: '28px', marginRight: '8px' }}>
-                                                        <i className="bi bi-robot" style={{ fontSize: '12px' }}></i>
+                                                )}
+                                                {isAnswer && (
+                                                    <div className="d-flex align-items-center mb-2">
+                                                        <div className="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" style={{ width: '28px', height: '28px', marginRight: '8px' }}>
+                                                            <i className="bi bi-robot" style={{ fontSize: '12px' }}></i>
+                                                        </div>
+                                                        <small className="text-light">WhatIF</small>
                                                     </div>
-                                                    <small className={theme === 'dark' ? 'text-light' : 'text-muted'}>WhatIF</small>
-                                                </div>
-                                            )}
-                                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
-                                                {msg.content}
+                                                )}
+                                                <div style={{ whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>{msg.content}</div>
                                             </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
                     ) : (
-                        <div className="d-flex flex-column justify-content-center align-items-center h-100">
-                            <h1 className="mb-3 fw-bold text-center">Добро пожаловать в WhatIf ✨</h1>
-                            <p className="text-muted">Начните новый запрос</p>
+                        <div className="d-flex flex-column justify-content-center align-items-center h-100 text-center px-3">
+                            <h1 className="mb-3" style={{ fontSize: '2rem', color: theme === 'dark' ? '#fff' : '#000' }}>Чем я могу помочь?</h1>
+                            <p style={{ maxWidth: 480, lineHeight: 1.5, fontSize: '1.1rem', color: theme === 'dark' ? '#ccc' : '#666' }}>
+                                Выберите чат или создайте новый.
+                            </p>
                         </div>
                     )}
                 </div>
 
-                {/* Поле ввода сообщения */}
-                {activeChat && (
-                    <div
-                        className={`d-flex flex-column align-items-center py-4 px-3 ${activeChat.messages.length === 0 ? 'position-absolute w-100' : theme === 'dark' ? 'border-top border-secondary' : 'border-top border-dark bg-light'}`}
-                        style={{
-                            bottom: activeChat.messages.length === 0 ? '50%' : '0',
-                            left: activeChat.messages.length === 0 ? '59%' : '0',
-                            transform: activeChat.messages.length === 0 ? 'translate(-50%, 50%)' : 'none',
-                            width: activeChat.messages.length === 0 ? 'auto' : '100%',
-                            transition: 'all 0.3s ease'
-                        }}
-                    >
-                        {activeChat.messages.length === 0 && (
-                            <div className="mb-3 fs-3 fw-semibold text-center">Чем я могу помочь?</div>
-                        )}
-                        <div className="input-group" style={{ width: '100%', maxWidth: '900px' }}>
-                            <input
-                                type="text"
-                                className={`form-control ${theme === 'dark' ? 'bg-dark text-white border-secondary' : 'bg-white text-dark border-dark'} rounded-pill px-4 py-3`}
-                                placeholder="Введите ваш запрос..."
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
-                                style={{
-                                    fontSize: '1rem',
-                                    paddingRight: '50px' // Добавляем отступ справа для кнопки
-                                }}
-                            />
-                            <button
-                                className="btn btn-primary rounded-circle p-2 position-absolute"
-                                style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    right: '10px',
-                                    top: '50%',
-                                    transform: 'translateY(-50%)',
-                                    zIndex: 5
-                                }}
-                                onClick={handleSendMessage}
-                                disabled={isSendingMessage}
-                            >
-                                {isSendingMessage ? (
-                                    <span className="spinner-border spinner-border-sm"></span>
-                                ) : (
-                                    <i className="bi bi-arrow-up"></i>
-                                )}
-                            </button>
-                        </div>
+                {activeChat && activeChat.messages.length > 0 && (
+                    <div className="input-group" style={{ maxWidth: 900, width: '100%', margin: '0 auto', padding: '1rem 0' }}>
+                        <input
+                            type="text"
+                            className={`form-control ${theme === 'dark' ? 'bg-dark text-white border-secondary' : 'bg-white text-dark border-dark'} rounded-pill px-4 py-3`}
+                            placeholder="Введите ваш запрос..."
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') handleSendMessage(); }}
+                            style={{ fontSize: '1rem', paddingRight: '50px' }}
+                        />
+                        <button
+                            className="btn btn-primary rounded-circle p-2 position-absolute"
+                            style={{ width: '40px', height: '40px', right: '10px', top: '50%', transform: 'translateY(-50%)', zIndex: 5 }}
+                            onClick={handleSendMessage}
+                            disabled={isSendingMessage}
+                        >
+                            {isSendingMessage ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-arrow-up"></i>}
+                        </button>
                     </div>
                 )}
             </div>

@@ -62,8 +62,8 @@ export const loginUser = async (formData) => {
                 'Content-Type': 'application/json',
             },
 
-
         });
+
         setAuthToken(response.data.token);
         window.localStorage.setItem('name', response.data.name);
         window.localStorage.setItem('surname', response.data.surname);

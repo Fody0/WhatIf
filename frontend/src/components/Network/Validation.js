@@ -62,8 +62,6 @@ export const loginValidationSchema = Yup.object({
     password: Yup.string()
         .min(6, 'Пароль должен содержать минимум 6 символов')
         .required('Пароль обязателен'),
-
-
 });
 const snilsRegex = /^[0-9]{3}-[0-9]{3}-[0-9]{3} [0-9]{2}$/;
 const passportRegex = /^[0-9]{4} [0-9]{6}$/;
