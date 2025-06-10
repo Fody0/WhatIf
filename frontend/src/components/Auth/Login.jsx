@@ -55,14 +55,14 @@ const LoginContent = () => {
     };
 
     // Логин через Google
-    const handleGoogleLogin = useGoogleLogin({
-        onSuccess: async (tokenResponse) => {
-            window.location.href = `${main_part_link}oauth2/authorization/google`;
-        },
-        onError: () => {
-            setLoginError('Ошибка при входе через Google');
-        },
-    });
+    // const handleGoogleLogin = useGoogleLogin({
+    //     onSuccess: async (tokenResponse) => {
+    //         window.location.href = `${main_part_link}oauth2/authorization/google`;
+    //     },
+    //     onError: () => {
+    //         setLoginError('Ошибка при входе через Google');
+    //     },
+    // });
 
     return (
         <Container className="mt-5" style={{ maxWidth: '400px' }}>
@@ -115,15 +115,15 @@ const LoginContent = () => {
             </Form>
 
             {/* Кнопка Google OAuth */}
-            <div className="d-grid gap-2">
-                <Button
-                    variant="outline-danger"
-                    onClick={() => handleGoogleLogin()}
-                    className="w-100"
-                >
-                    Войти через Google
-                </Button>
-            </div>
+            {/*<div className="d-grid gap-2">*/}
+            {/*    <Button*/}
+            {/*        variant="outline-danger"*/}
+            {/*        onClick={() => handleGoogleLogin()}*/}
+            {/*        className="w-100"*/}
+            {/*    >*/}
+            {/*        Войти через Google*/}
+            {/*    </Button>*/}
+            {/*</div>*/}
 
             {/* Ссылка на регистрацию */}
             <div className="text-center mt-3">
@@ -138,9 +138,9 @@ const LoginContent = () => {
 // Обёртка с GoogleOAuthProvider
 const Login = () => {
     return (
-        <GoogleOAuthProvider clientId={clientId}>
+        // <GoogleOAuthProvider clientId={clientId}>
             <LoginContent />
-        </GoogleOAuthProvider>
+        /*</GoogleOAuthProvider>*/
     );
 };
 

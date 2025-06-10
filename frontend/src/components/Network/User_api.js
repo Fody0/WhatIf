@@ -2,8 +2,8 @@ import axios from 'axios';
 
 export const initialRegisterData = {
     name: '',
-    surname: '',
-    middle_name: '',
+    // surname: '',
+    // middle_name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -40,8 +40,8 @@ export const registerUser = async (formData) => {
         });
         setAuthToken(response.data.token);
         window.localStorage.setItem('name', response.data.name);
-        window.localStorage.setItem('surname', response.data.surname);
-        window.localStorage.setItem('middle_name', response.data.middle_name);
+        // window.localStorage.setItem('surname', response.data.surname);
+        // window.localStorage.setItem('middle_name', response.data.middle_name);
         window.localStorage.setItem('email', response.data.email);
         console.log(response.data);
         return response.data;
@@ -66,8 +66,8 @@ export const loginUser = async (formData) => {
 
         setAuthToken(response.data.token);
         window.localStorage.setItem('name', response.data.name);
-        window.localStorage.setItem('surname', response.data.surname);
-        window.localStorage.setItem('middle_name', response.data.middle_name);
+        // window.localStorage.setItem('surname', response.data.surname);
+        // window.localStorage.setItem('middle_name', response.data.middle_name);
         window.localStorage.setItem('email', response.data.email);
         console.log(response.data);
         return response.data;
@@ -98,8 +98,8 @@ export const logoutUser = async () => {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('name');
         localStorage.removeItem('email');
-        localStorage.removeItem('middle_name');
-        localStorage.removeItem('surname');
+        // localStorage.removeItem('middle_name');
+        // localStorage.removeItem('surname');
 
     } catch (error) {
         console.error('Ошибка при выходе из системы:', error);

@@ -42,8 +42,9 @@ const Register = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        const isValid = await validate();
-        if (!isValid) return;
+        //TODO : Поправь здесь валидацию на минимальную, чтоб прост длинна 6+
+        // const isValid = await validate();
+        // if (!isValid) return;
 
         const { confirmPassword, ...dataToSend } = formData;
 
@@ -78,10 +79,10 @@ const Register = () => {
 
 
 
-    const getStrengthWidth = () => {
-        const percent = Math.min((passwordStrength.level / 6) * 100, 100);
-        return `${percent}%`;
-    };
+    // const getStrengthWidth = () => {
+    //     const percent = Math.min((passwordStrength.level / 6) * 100, 100);
+    //     return `${percent}%`;
+    // };
 
     return (
         <>
@@ -102,29 +103,29 @@ const Register = () => {
                         <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
                     </Form.Group>
 
-                    <Form.Group className="mb-3">
-                        <Form.Control
-                            type="text"
-                            name="surname"
-                            placeholder="Фамилия"
-                            onChange={handleChange}
-                            value={formData.surname}
-                            isInvalid={!!errors.surname}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.surname}</Form.Control.Feedback>
-                    </Form.Group>
+                    {/*<Form.Group className="mb-3">*/}
+                    {/*    <Form.Control*/}
+                    {/*        type="text"*/}
+                    {/*        name="surname"*/}
+                    {/*        placeholder="Фамилия"*/}
+                    {/*        onChange={handleChange}*/}
+                    {/*        value={formData.surname}*/}
+                    {/*        isInvalid={!!errors.surname}*/}
+                    {/*    />*/}
+                    {/*    <Form.Control.Feedback type="invalid">{errors.surname}</Form.Control.Feedback>*/}
+                    {/*</Form.Group>*/}
 
-                    <Form.Group className="mb-3">
-                        <Form.Control
-                            type="text"
-                            name="middle_name"
-                            placeholder="Отчество"
-                            onChange={handleChange}
-                            value={formData.middle_name}
-                            isInvalid={!!errors.middle_name}
-                        />
-                        <Form.Control.Feedback type="invalid">{errors.middle_name}</Form.Control.Feedback>
-                    </Form.Group>
+                    {/*<Form.Group className="mb-3">*/}
+                    {/*    <Form.Control*/}
+                    {/*        type="text"*/}
+                    {/*        name="middle_name"*/}
+                    {/*        placeholder="Отчество"*/}
+                    {/*        onChange={handleChange}*/}
+                    {/*        value={formData.middle_name}*/}
+                    {/*        isInvalid={!!errors.middle_name}*/}
+                    {/*    />*/}
+                    {/*    <Form.Control.Feedback type="invalid">{errors.middle_name}</Form.Control.Feedback>*/}
+                    {/*</Form.Group>*/}
 
                     <Form.Group className="mb-3">
                         <Form.Control
@@ -147,22 +148,22 @@ const Register = () => {
                             value={formData.password}
                             isInvalid={!!errors.password}
                         />
-                        <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
+                        {/*<Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>*/}
 
-                        {formData.password && (
-                            <div className="mt-2">
-                                <div className="progress" style={{ height: '5px' }}>
-                                    <div
-                                        className={`progress-bar bg-${getStrengthColor()}`}
-                                        style={{ width: getStrengthWidth() }}
-                                    ></div>
-                                </div>
-                                <small className={`text-${getStrengthColor()}`}>
-                                    {passwordStrength.message}
-                                    {passwordStrength.level <= 2 && ' - добавьте заглавные буквы, цифры и спецсимволы'}
-                                </small>
-                            </div>
-                        )}
+                        {/*{formData.password && (*/}
+                        {/*    <div className="mt-2">*/}
+                        {/*        <div className="progress" style={{ height: '5px' }}>*/}
+                        {/*            <div*/}
+                        {/*                className={`progress-bar bg-${getStrengthColor()}`}*/}
+                        {/*                // style={{ width: getStrengthWidth() }}*/}
+                        {/*            ></div>*/}
+                        {/*        </div>*/}
+                        {/*        <small className={`text-${getStrengthColor()}`}>*/}
+                        {/*            {passwordStrength.message}*/}
+                        {/*            {passwordStrength.level <= 2 && ' - добавьте заглавные буквы, цифры и спецсимволы'}*/}
+                        {/*        </small>*/}
+                        {/*    </div>*/}
+                        {/*)}*/}
                     </Form.Group>
 
                     <Form.Group className="mb-3">

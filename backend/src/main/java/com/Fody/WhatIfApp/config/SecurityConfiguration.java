@@ -1,6 +1,6 @@
 package com.Fody.WhatIfApp.config;
 
-import com.Fody.WhatIfApp.config.OAuth2SuccessHandler;
+//import com.Fody.WhatIfApp.config.OAuth2SuccessHandler;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -27,7 +27,7 @@ public class SecurityConfiguration {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authProvider;
-    private final AuthenticationSuccessHandler oAuth2SuccessHandler;
+//    private final AuthenticationSuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -43,9 +43,9 @@ public class SecurityConfiguration {
                                 .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .oauth2Login(oauth2 -> oauth2
-                        .successHandler(oAuth2SuccessHandler)
-                )
+//                .oauth2Login(oauth2 -> oauth2
+//                        .successHandler(oAuth2SuccessHandler)
+//                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(authProvider);
 
@@ -57,7 +57,7 @@ public class SecurityConfiguration {
     @Order(Ordered.HIGHEST_PRECEDENCE)
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "https://accounts.google.com")); // Allow frontend origin
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:8080", "https://accounts.google.com", "https://signed-fail-sailing-reviews.trycloudflare.com")); // Allow frontend origin
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Allowed methods
         configuration.setAllowedHeaders(Arrays.asList("*")); // Allow all headers
 

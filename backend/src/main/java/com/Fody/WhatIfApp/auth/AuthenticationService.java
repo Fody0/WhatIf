@@ -24,8 +24,6 @@ public class AuthenticationService {
     public AuthenticationResponse register(RegisterRequest request) {
         var user = User.builder()
                 .name(request.getName())
-                .surname(request.getSurname())
-                .middle_name(request.getMiddle_name())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.User)
@@ -36,8 +34,6 @@ public class AuthenticationService {
                 .token(jwtToken)
                 .email(user.getEmail())
                 .name(user.getName())
-                .surname(user.getSurname())
-                .middle_name(request.getMiddle_name())
                 .build();
     }
 
@@ -54,8 +50,6 @@ public class AuthenticationService {
                 .token(jwtToken)
                 .email(user.getEmail())
                 .name(user.getName())
-                .surname(user.getSurname())
-                .middle_name(user.getMiddle_name())
                 .build();
     }
 

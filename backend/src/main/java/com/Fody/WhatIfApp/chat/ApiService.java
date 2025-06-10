@@ -22,7 +22,9 @@ public class ApiService {
 
             System.out.println("URL to send request " + apiBaseUrl);
 
-            String apiUrl = apiBaseUrl;
+            String template = "Заглушка";
+
+            String apiUrl = "https://force-said-promise-pressing.trycloudflare.com";
             apiUrl += "/generate";
             PromptRequest request = new PromptRequest(message);
 
@@ -32,8 +34,9 @@ public class ApiService {
             HttpEntity<PromptRequest> requestEntity = new HttpEntity<>(request, headers);
 
             return restTemplate.postForEntity(apiUrl, requestEntity, String.class);
+//            return template;
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error processing request");
         }
     }

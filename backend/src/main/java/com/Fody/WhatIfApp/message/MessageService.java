@@ -35,18 +35,18 @@ public class MessageService {
         messageEntity.setChat(chat);
 
 /// Block to comment
-        ResponseEntity<String> data = apiService.postData(message);
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode root = mapper.readTree(data.getBody());
-        var response = root.path("response").asText();
-
-
-        System.out.println(response);
-
-        //Send a request to an LLM
-        messageEntity.setMessage_answer(response);
-        message_response.setMessage_answer(response);
+//        ResponseEntity<String> data = apiService.postData(message);
+//
+//        ObjectMapper mapper = new ObjectMapper();
+//        JsonNode root = mapper.readTree(data.getBody());
+//        var response = root.path("response").asText();
+//
+//
+//        System.out.println(response);
+//
+//        //Send a request to an LLM
+//        messageEntity.setMessage_answer(response);
+//        message_response.setMessage_answer(response);
 /// end
 
         messageRepository.save(messageEntity);
