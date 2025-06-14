@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { logoutUser } from "../Network/User_api";
 import './style.css';
@@ -17,7 +17,7 @@ const Main = () => {
     const [error, setError] = useState(null);
     const [userName, setUserName] = useState('Гость');
     const [theme, setTheme] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('theme') || 'dark' : 'dark'));
-    const [isSidebarOpen, setIsSidebarOpen] = useState(false); // New state for sidebar toggle
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     const menuRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -68,17 +68,21 @@ const Main = () => {
                     try { chat = JSON.parse(chatEntity); } catch { chat = parseChatEntity(chatEntity); }
                 } else { chat = chatEntity; }
                 if (!chat || !chat.id) return [];
+                const parsedMessages = Array.isArray(messages) ? messages.flatMap(m => {
+                    if (typeof m === 'string') return [{ type: 'text', content: m }];
+                    if (m.message_question && m.message_answer) return [
+                        { type: 'question', content: m.message_question },
+                        { type: 'answer', content: m.message_answer }
+                    ];
+                    return [{ type: 'text', content: m.content || m.text || JSON.stringify(m) }];
+                }) : [];
+
+                const firstQuestion = parsedMessages.find(m => m.type === 'question');
+
                 return [{
                     id: chat.id,
-                    title: chat.title || `Запрос #${chat.id}`,
-                    messages: Array.isArray(messages) ? messages.flatMap(m => {
-                        if (typeof m === 'string') return [{ type: 'text', content: m }];
-                        if (m.message_question && m.message_answer) return [
-                            { type: 'question', content: m.message_question },
-                            { type: 'answer', content: m.message_answer }
-                        ];
-                        return [{ type: 'text', content: m.content || m.text || JSON.stringify(m) }];
-                    }) : []
+                    title: firstQuestion?.content || `Новый запрос`,
+                    messages: parsedMessages
                 }];
             });
 
@@ -134,7 +138,7 @@ const Main = () => {
 
             const newChat = {
                 id: response.data.chat_id,
-                title: `Запрос #${chats.length + 1}`,
+                title: 'Новый запрос',
                 messages: []
             };
 
@@ -162,18 +166,23 @@ const Main = () => {
                 headers: { 'Authorization': `Bearer ${getAuthToken()}` }
             });
 
-            const updatedChats = chats.map(chat =>
-                chat.id === activeChat.id
-                    ? {
+            const updatedChats = chats.map(chat => {
+                if (chat.id === activeChat.id) {
+                    const updatedMessages = [
+                        ...chat.messages,
+                        { type: 'question', content: message },
+                        { type: 'answer', content: response.data.message_answer || 'Нет ответа' }
+                    ];
+
+                    const firstQuestion = updatedMessages.find(m => m.type === 'question');
+                    return {
                         ...chat,
-                        messages: [
-                            ...chat.messages,
-                            { type: 'question', content: message },
-                            { type: 'answer', content: response.data.message_answer || 'Нет ответа' }
-                        ]
-                    }
-                    : chat
-            );
+                        messages: updatedMessages,
+                        title: firstQuestion?.content || chat.title
+                    };
+                }
+                return chat;
+            });
 
             setChats(updatedChats);
             setActiveChat(updatedChats.find(chat => chat.id === activeChat.id));
@@ -228,7 +237,7 @@ const Main = () => {
                                 style={{ right: 0, zIndex: 10, minWidth: '150px' }}
                             >
                                 <div className="p-2" style={{ cursor: 'pointer' }} onClick={toggleTheme}>
-                                    {theme === 'dark' ? 'Светлая тема ' : 'Тёмная тема '}
+                                    {theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
                                 </div>
                                 {getAuthToken() ? (
                                     <div
@@ -251,6 +260,26 @@ const Main = () => {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Navigation Links */}
+                <div className="mb-3">
+                    <Link
+                        to="/contacts"
+                        className={`d-block p-2 mb-2 rounded ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'}`}
+                        style={{ cursor: 'pointer', textDecoration: 'none' }}
+                        onClick={() => setIsSidebarOpen(false)}
+                    >
+                        <i className="bi bi-envelope-fill me-2"></i>Контакты
+                    </Link>
+                    <Link
+                        to="/faq"
+                        className={`d-block p-2 mb-2 rounded ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'}`}
+                        style={{ cursor: 'pointer', textDecoration: 'none' }}
+                        onClick={() => setIsSidebarOpen(false)}
+                    >
+                        <i className="bi bi-question-circle-fill me-2"></i>FAQ
+                    </Link>
                 </div>
 
                 <button

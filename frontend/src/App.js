@@ -5,6 +5,8 @@ import Admin from './components/Admin/Admin';
 import Register from './components/Auth/Register';
 import Login from "./components/Auth/Login";
 import OAuthRedirectHandler from "./components/Auth/OAuthRedirectHandler";
+import Contacts from './components/pages/Contacts';
+import Faq from './components/pages/Faq';
 
 function App() {
   return (
@@ -14,6 +16,8 @@ function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
+            <Route path="/faq" element={<Faq />} />
+            <Route path="/contacts" element={<Contacts />} />
             <Route path="/oauth2/redirect" element={<OAuthRedirectHandler />} />
 
         </Routes>
