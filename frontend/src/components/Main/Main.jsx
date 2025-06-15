@@ -3,8 +3,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { logoutUser } from "../Network/User_api";
+import { logoutUser,getAuthToken,isTokenExpired } from "../Network/User_api";
 import './style.css';
+
 
 const Main = () => {
     const [chats, setChats] = useState([]);
@@ -47,16 +48,24 @@ const Main = () => {
         }
     };
 
-    const getAuthToken = () => localStorage.getItem('auth_token') || null;
+    const validateToken = () => {
+        const token = getAuthToken();
+        if (!token || isTokenExpired(token)) {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('name');
+            localStorage.removeItem('email');
+            navigate('/login');
+            return false;
+        }
+        return token;
+    };
 
     const fetchAllChats = async () => {
         setIsLoadingChats(true);
         try {
-            const token = getAuthToken();
-            if (!token) {
-                navigate('/login');
-                return;
-            }
+            const token = validateToken();
+            if (!token) return;
+
             const response = await axios.post(`${main_part_link}api/v1/chats/all_chats`, {}, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -132,8 +141,11 @@ const Main = () => {
         setIsCreatingChat(true);
         setError(null);
         try {
+            const token = validateToken();
+            if (!token) return;
+
             const response = await axios.post(`${main_part_link}api/v1/chats/new_chat`, {}, {
-                headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             const newChat = {
@@ -147,6 +159,10 @@ const Main = () => {
         } catch (err) {
             setError('Не удалось создать новый чат');
             console.error(err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            }
         } finally {
             setIsCreatingChat(false);
         }
@@ -159,11 +175,14 @@ const Main = () => {
         setError(null);
 
         try {
+            const token = validateToken();
+            if (!token) return;
+
             const response = await axios.post(`${main_part_link}api/v1/chats/new_message`, {
                 chat_id: activeChat.id,
                 message
             }, {
-                headers: { 'Authorization': `Bearer ${getAuthToken()}` }
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
             const updatedChats = chats.map(chat => {
@@ -190,6 +209,10 @@ const Main = () => {
         } catch (err) {
             setError('Не удалось отправить сообщение');
             console.error(err);
+            if (err.response?.status === 401) {
+                localStorage.removeItem('auth_token');
+                navigate('/login');
+            }
         } finally {
             setIsSendingMessage(false);
         }
@@ -208,7 +231,6 @@ const Main = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isSidebarOpen]);
-
     return (
         <div className={`d-flex vh-100 ${theme === 'dark' ? 'bg-dark text-light' : 'bg-light text-dark'} position-relative main-container`}>
             {/* Toggle Button for Mobile */}

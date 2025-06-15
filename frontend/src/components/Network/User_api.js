@@ -2,8 +2,6 @@ import axios from 'axios';
 
 export const initialRegisterData = {
     name: '',
-    // surname: '',
-    // middle_name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -21,6 +19,7 @@ export const getAuthToken = () => {
 export const setAuthToken = (token) => {
     window.localStorage.setItem('auth_token', token);
 }
+
 
 const main_part_link = 'http://localhost:8080/';
 
@@ -40,8 +39,6 @@ export const registerUser = async (formData) => {
         });
         setAuthToken(response.data.token);
         window.localStorage.setItem('name', response.data.name);
-        // window.localStorage.setItem('surname', response.data.surname);
-        // window.localStorage.setItem('middle_name', response.data.middle_name);
         window.localStorage.setItem('email', response.data.email);
         console.log(response.data);
         return response.data;
@@ -66,8 +63,6 @@ export const loginUser = async (formData) => {
 
         setAuthToken(response.data.token);
         window.localStorage.setItem('name', response.data.name);
-        // window.localStorage.setItem('surname', response.data.surname);
-        // window.localStorage.setItem('middle_name', response.data.middle_name);
         window.localStorage.setItem('email', response.data.email);
         console.log(response.data);
         return response.data;
@@ -81,29 +76,23 @@ export const loginUser = async (formData) => {
 
 export const logoutUser = async () => {
     try {
-        /*  var header;
-          if(getAuthToken() == null) header = "null";
-          else header = "Bearer ".concat(getAuthToken());
-          console.log('Logging out...');
-          const response = await axios.post(`${main_part_link}/api/v1/Users/logout`, {}, {
-              headers: {
-                  "Authorization": header,
-              },
-
-          });*/
-        /*return response.data;*/
-
-
         setAuthToken('');
         localStorage.removeItem('auth_token');
         localStorage.removeItem('name');
         localStorage.removeItem('email');
-        // localStorage.removeItem('middle_name');
-        // localStorage.removeItem('surname');
-
     } catch (error) {
         console.error('Ошибка при выходе из системы:', error);
         throw error;
+    }
+};
+export const isTokenExpired = (token) => {
+    if (!token) return true;
+    try {
+        const decoded = JSON.parse(atob(token.split('.')[1]));
+        return decoded.exp * 1000 < Date.now();
+    } catch (e) {
+        console.error('Ошибка декодирования токена:', e);
+        return true; // Считаем токен недействительным при ошибке
     }
 };
 

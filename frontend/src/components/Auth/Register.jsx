@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser, initialRegisterData } from '../Network/User_api';
+import { registerUser, initialRegisterData, getAuthToken, isTokenExpired } from '../Network/User_api';
 import { Form, Button, Container } from 'react-bootstrap';
 import { checkPasswordStrength } from "../Network/Validation";
 
@@ -14,6 +14,13 @@ const Register = () => {
     });
     const navigate = useNavigate();
 
+    useEffect(() => {
+        const token = getAuthToken();
+        if (token && !isTokenExpired(token)) {
+            navigate('/'); // Перенаправляем на главную, если токен валиден
+        }
+    }, [navigate]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
@@ -25,26 +32,18 @@ const Register = () => {
 
     const validate = () => {
         const newErrors = {};
-
-        // Проверка длины пароля (6+ символов)
         if (formData.password.length < 6) {
             newErrors.password = 'Пароль должен содержать не менее 6 символов';
         }
-
-        // Проверка совпадения пароля и подтверждения
         if (formData.password !== formData.confirmPassword) {
             newErrors.confirmPassword = 'Пароли не совпадают';
         }
-
         setErrors(newErrors);
-
-        // Валидация успешна, если нет ошибок
         return Object.keys(newErrors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
         const isValid = validate();
         if (!isValid) return;
 
@@ -62,18 +61,17 @@ const Register = () => {
 
     const getStrengthColor = () => {
         if (!formData.password) return 'secondary';
-
         switch (passwordStrength.level) {
             case 0:
             case 1:
             case 2:
-                return 'danger'; // слабый
+                return 'danger';
             case 3:
             case 4:
-                return 'warning'; // средний
+                return 'warning';
             case 5:
             case 6:
-                return 'success'; // сильный
+                return 'success';
             default:
                 return 'secondary';
         }
@@ -95,7 +93,6 @@ const Register = () => {
                     />
                     <Form.Control.Feedback type="invalid">{errors.name}</Form.Control.Feedback>
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                     <Form.Control
                         type="email"
@@ -107,7 +104,6 @@ const Register = () => {
                     />
                     <Form.Control.Feedback type="invalid">{errors.email}</Form.Control.Feedback>
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                     <Form.Control
                         type="password"
@@ -119,7 +115,6 @@ const Register = () => {
                     />
                     <Form.Control.Feedback type="invalid">{errors.password}</Form.Control.Feedback>
                 </Form.Group>
-
                 <Form.Group className="mb-3">
                     <Form.Control
                         type="password"
@@ -131,7 +126,6 @@ const Register = () => {
                     />
                     <Form.Control.Feedback type="invalid">{errors.confirmPassword}</Form.Control.Feedback>
                 </Form.Group>
-
                 <Button variant="primary" type="submit" className="w-100">
                     Зарегистрироваться
                 </Button>
